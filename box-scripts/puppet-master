@@ -1,0 +1,14 @@
+#!/bin/bash
+
+. '/vagrant/box-scripts/functions'
+
+puppet_environment_path="$(puppet config print confdir)/environments"
+PuppetConfigSet environmentpath $puppet_environment_path
+if [ ! -d "${puppet_environment_path}/${puppet_environment}" ]
+then
+  mkdir -p "$puppet_environment_path/${puppet_environment}"
+fi
+
+puppet module list | grep -q puppet-r10k || puppet module install puppet-r10k --version 4.2.0 --modulepath "$(puppet config print confdir)/modules"
+puppet apply /vagrant/r10k.pp
+/usr/local/bin/r10k deploy environment -pv

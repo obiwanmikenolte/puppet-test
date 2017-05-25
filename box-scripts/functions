@@ -1,0 +1,66 @@
+#!/bin/bash
+
+puppet_environment='test'
+
+dirname=${0%/*}
+
+# Try to determine which OS is running
+if [ -f '/etc/debian_version' ]
+then
+  osfamily='Debian'
+elif [ -f '/etc/redhat-release' ]
+then
+  osfamily='RedHat'
+else
+  osfamily='unsupported'
+fi
+
+Fail() {
+  echo "$@"
+  exit 1
+}
+
+# Use PackageInstall
+YumInstall() {
+  package="$1"
+set +e
+  rpm -q "$package" --quiet
+  result=$?
+set -e
+  if [ $result -ne 0 ]
+  then
+    yum --nogpgcheck -y install "$package"
+  fi
+}
+
+# Use PackageInstall
+AptInstall() {
+  package="$1"
+set +e
+  dpkg -l "$package"
+  result=$?
+set -e
+  if [ $result -ne 0 ]
+  then
+    apt-get -y install "$package"
+  fi
+}
+
+PackageInstall() {
+  if [ $osfamily == 'RedHat' ]
+  then
+    YumInstall $1
+  elif [ $osfamily == 'Debian' ]
+  then
+    AptInstall $1
+  fi
+}
+
+PuppetConfigSet() {
+  current_conf=$(puppet config print $1)
+  if [ "$current_conf" != "$2" ]
+  then
+    echo "Puppet config setting $1 is currently ${current_conf}.  Setting to $2"
+    puppet config set "$1" "$2"
+  fi
+}
